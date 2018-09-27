@@ -4,7 +4,8 @@
 #define ECHO      9
 #define TOO_CLOSE     50
 #define EPSILON     5
-#define INTERVAL    100
+#define INTERVAL    50
+#define TOUCH       6
 
 #define S2        10
 #define S3        11
@@ -22,9 +23,21 @@ enum COMMANDS {
   BACK_RIGHT    = 46
 };
 
+enum STATES
+{
+  STOP=0,
+  GOFORWARD=1,
+  GOLEFT=2,
+  GORIGHT=3,
+  GOBACK=4};
+  
 uint16_t dist = 0;
 int16_t error = 0;
 uint8_t command = NONE;
+uint8_t state = 0;
+bool last_touch = LOW;
+
+
 
 uint16_t poll_ultrasonic(uint8_t);
 uint16_t poll_green();
@@ -34,6 +47,8 @@ void send_end_cmd(void);
 long time = 0;
 
 void setup(){
+  pinMode(TOUCH,INPUT);
+  pinMode(ECHO,INPUT);
   Serial.begin(115200);
 }
 
@@ -41,21 +56,79 @@ void loop(){
   dist = poll_ultrasonic(TRIG, ECHO);
   int errorToClose= 50;
   int errorToFaaar = 50;
-  if(errorToFaaar < dist){
+  if(digitalRead(TOUCH)==HIGH && last_touch == LOW)
+  {
+    last_touch = HIGH;
+    if(state == GOLEFT){
+      state = GORIGHT;
+    }else if (state == GORIGHT){
+      state = GOLEFT;
+    }else{
+      state = GOLEFT;
+    }
+  }else{
+    last_touch = digitalRead(TOUCH);
+  }
+  
+  if(state == GORIGHT)
+  {
+    long start_t = millis();
+    int elapsed_t = 0;
+    while(elapsed_t < 4000){
+      elapsed_t = millis() - start_t;
+      send_cmd(BACKWARD);
+      delay(10);
     
-    command = FORWARD_RIGHT;
-
+    }
+    start_t=millis();
+    elapsed_t =0;
+    while(elapsed_t<4000)
+    {
+      elapsed_t = millis() - start_t;
+      send_cmd(FORWARD_LEFT);
+      delay(10);
+    }
+    
   }
-  else{
-    command = NONE;
-  }
 
-if(errorToClose > dist){
-  command = FORWARD_LEFT;
-}
-else{
-  command=NONE;
-}
+  if(state == GOLEFT)
+  {
+        long start_t = millis();
+    int elapsed_t = 0;
+    while(elapsed_t < 4000){
+      elapsed_t = millis() - start_t;
+      send_cmd(BACKWARD);
+      delay(10);
+    
+    }
+    start_t=millis();
+    elapsed_t =0;
+    while(elapsed_t<4000)
+    {
+      elapsed_t = millis() - start_t;
+      send_cmd(FORWARD_RIGHT);
+      delay(10);
+    }
+  }
+  
+  if (state == FORWARD){
+    if(errorToFaaar < dist){
+      command = FORWARD_RIGHT;
+      
+    }
+    else{
+      command = FORWARD;
+    }
+  
+    if(errorToClose > dist){
+      command = FORWARD_LEFT;
+    }
+    else{
+      
+      command=FORWARD;
+    }
+  }
+ 
   if( (millis() - time) >  INTERVAL){
     send_cmd(command);
     delay(10);
