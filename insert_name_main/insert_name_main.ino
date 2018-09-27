@@ -29,12 +29,13 @@ enum STATES
   GOFORWARD=1,
   GOLEFT=2,
   GORIGHT=3,
-  GOBACK=4};
+  GOBACK=4
+};
   
 uint16_t dist = 0;
 int16_t error = 0;
-uint8_t command = NONE;
-uint8_t state = 0;
+uint8_t command = FORWARD;
+uint8_t state =  GOFORWARD;
 bool last_touch = LOW;
 
 
@@ -49,6 +50,7 @@ long time = 0;
 void setup(){
   pinMode(TOUCH,INPUT);
   pinMode(ECHO,INPUT);
+  pinMode(PIN, OUTPUT);
   Serial.begin(115200);
 }
 
@@ -77,28 +79,31 @@ void loop(){
     while(elapsed_t < 4000){
       elapsed_t = millis() - start_t;
       send_cmd(BACKWARD);
-      delay(10);
+      send_end_cmd();
+      // delay(10);
     
     }
     start_t=millis();
     elapsed_t =0;
-    while(elapsed_t<4000)
+    while(elapsed_t < 4000)
     {
       elapsed_t = millis() - start_t;
       send_cmd(FORWARD_LEFT);
-      delay(10);
+      send_end_cmd();
+      // delay(10);
     }
     
   }
 
   if(state == GOLEFT)
   {
-        long start_t = millis();
+    long start_t = millis();
     int elapsed_t = 0;
     while(elapsed_t < 4000){
       elapsed_t = millis() - start_t;
       send_cmd(BACKWARD);
-      delay(10);
+      send_end_cmd();
+      // delay(10);
     
     }
     start_t=millis();
@@ -107,11 +112,12 @@ void loop(){
     {
       elapsed_t = millis() - start_t;
       send_cmd(FORWARD_RIGHT);
-      delay(10);
+      send_end_cmd();
+      // delay(10);
     }
   }
   
-  if (state == FORWARD){
+  if (state == GOFORWARD){
     if(errorToFaaar < dist){
       command = FORWARD_RIGHT;
       
@@ -127,14 +133,16 @@ void loop(){
       
       command=FORWARD;
     }
+    send_cmd(command);
+    send_end_cmd();
   }
  
-  if( (millis() - time) >  INTERVAL){
-    send_cmd(command);
-    delay(10);
-    send_cmd(command);
-    time = millis();
-  }
+  // if( (millis() - time) >  INTERVAL){
+  //   send_cmd(command);
+  //   delay(10);
+  //   send_cmd(command);
+  //   time = millis();
+  // }
   
 }
 
@@ -170,6 +178,8 @@ void send_start_cmd(){
 }
 
 void send_cmd(uint8_t num){
+  Serial.print("SENDING CMD");
+  Serial.println(num);
   send_start_cmd();
   for(uint8_t i = 0; i<num ; i++){
     digitalWrite(PIN, HIGH);
