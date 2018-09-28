@@ -11,7 +11,6 @@
 #define S3        11
 #define FREQ      12
 
-
 enum COMMANDS {
   NONE      = 4,
   FORWARD     = 10,
@@ -36,7 +35,7 @@ uint16_t dist = 0;
 int16_t error = 0;
 uint8_t command = FORWARD;
 uint8_t state =  GOFORWARD;
-bool last_touch = LOW;
+bool last_touch = HIGH;
 
 
 
@@ -48,19 +47,20 @@ void send_end_cmd(void);
 long time = 0;
 
 void setup(){
-  pinMode(TOUCH,INPUT);
-  pinMode(ECHO,INPUT);
+  pinMode(TOUCH,INPUT_PULLUP);
+  pinMode(ECHO, INPUT);
+  pinMode(TRIG, OUTPUT);
   pinMode(PIN, OUTPUT);
   Serial.begin(115200);
 }
 
 void loop(){
-  dist = poll_ultrasonic(TRIG, ECHO);
+  dist = 0; //poll_ultrasonic(TRIG, ECHO);
   int errorToClose= 50;
   int errorToFaaar = 50;
-  if(digitalRead(TOUCH)==HIGH && last_touch == LOW)
+  if(digitalRead(TOUCH)==LOW && last_touch == HIGH)
   {
-    last_touch = HIGH;
+    last_touch = LOW;
     if(state == GOLEFT){
       state = GORIGHT;
     }else if (state == GORIGHT){
@@ -80,7 +80,7 @@ void loop(){
       elapsed_t = millis() - start_t;
       send_cmd(BACKWARD);
       send_end_cmd();
-      // delay(10);
+      delay(10);
     
     }
     start_t=millis();
@@ -90,7 +90,7 @@ void loop(){
       elapsed_t = millis() - start_t;
       send_cmd(FORWARD_LEFT);
       send_end_cmd();
-      // delay(10);
+      delay(10);
     }
     
   }
@@ -103,7 +103,7 @@ void loop(){
       elapsed_t = millis() - start_t;
       send_cmd(BACKWARD);
       send_end_cmd();
-      // delay(10);
+      delay(10);
     
     }
     start_t=millis();
@@ -113,11 +113,12 @@ void loop(){
       elapsed_t = millis() - start_t;
       send_cmd(FORWARD_RIGHT);
       send_end_cmd();
-      // delay(10);
+      delay(10);
     }
   }
   
   if (state == GOFORWARD){
+    command = FORWARD;
     if(errorToFaaar < dist){
       command = FORWARD_RIGHT;
       
@@ -135,7 +136,13 @@ void loop(){
     }
     send_cmd(command);
     send_end_cmd();
-  }
+    send_cmd(command);
+    send_end_cmd();
+    send_cmd(command);
+    send_end_cmd();
+    send_cmd(command);
+    send_end_cmd();
+ }
  
   // if( (millis() - time) >  INTERVAL){
   //   send_cmd(command);
@@ -176,6 +183,7 @@ void send_start_cmd(){
   digitalWrite(PIN, LOW);
   delayMicroseconds(500 - LAG);
 }
+
 
 void send_cmd(uint8_t num){
   Serial.print("SENDING CMD");
